@@ -72,3 +72,16 @@ Thumbs.db
 /.claude/settings.json
 /.claude/.template-manifest.sha
 /.claude/.template-origin
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+/build/
+/dist/
+
+# 実際の検査画像（サンプル）は git に含めない
+/image/
