@@ -1,0 +1,74 @@
+# 新規プロジェクトの初期値（既存 .gitignore があれば claude-sbx が保持し、必要分のみ追記）。
+# claude-sbx は起動時に「テンプレ提供ファイル（manifest）」の per-file 無視エントリをここへ追記する。
+# 言語・スタック固有の除外パターンは個別プロジェクト側で追記してください。
+
+# 起動毎に再生成 / 共有参照 / worktree / host bootstrap / 退避
+# （.claude-code-best-practice は worktree では root への symlink になるため末尾スラッシュ無し）
+/.claude-code-best-practice
+/.sbx/
+/.claude.bak-*/
+/.claude/.template-manifest
+
+# plans/requirements/.ai-handoff は「プロジェクト状態」（テンプレ成果物ではない）。
+# worktree では root の実体への symlink になり単一実体を全 worktree で共有する。
+# dir/symlink 両対応のため末尾スラッシュ無しで無視する。
+/plans
+/requirements
+/.ai-handoff
+
+# ── 追跡する（除外しない）= プロジェクト固有・並列 Claude 間で共有 ──────────────
+#   .claude/rules/<project>.md     プロジェクト固有規約（テンプレ提供の汎用 rule は manifest で無視）
+#   .claude/skills/ , .claude/agents/   /prepare-workspace で取り込んだ資産
+#   .claude/settings.local.json    プロジェクト設定（テンプレ settings.json に上書きマージ）
+#   CLAUDE.md   仕様・規約（worktree ごとにブランチの内容が正 — 追跡物）
+# 個人作業領域として除外したいチームは下記を解除する:
+# /CLAUDE.md
+
+# Env
+.env
+.env.local
+*.env
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+/.claude/commands/debug.md
+/.claude/commands/intake.md
+/.claude/commands/iterate.md
+/.claude/commands/orient.md
+/.claude/commands/prepare-workspace.md
+/.claude/commands/quickfix.md
+/.claude/commands/retrospect.md
+/.claude/commands/review.md
+/.claude/commands/scaffold-stack.md
+/.claude/commands/ship-assist.md
+/.claude/hooks/ci-wait.sh
+/.claude/hooks/codex-review.sh
+/.claude/hooks/copilot-wait.sh
+/.claude/hooks/format-on-edit.template.sh
+/.claude/hooks/orient-state.sh
+/.claude/hooks/postmodelswitch-notice.sh
+/.claude/hooks/precompact-instructions.sh
+/.claude/hooks/precompact-transcript-backup.sh
+/.claude/hooks/resolve-base.sh
+/.claude/hooks/review-prep.sh
+/.claude/hooks/scaffold-detect.sh
+/.claude/hooks/scaffold-wire-format-hook.sh
+/.claude/hooks/secret-scan.sh
+/.claude/hooks/session-start.sh
+/.claude/hooks/sessionstart-compact-recovery.sh
+/.claude/hooks/ship-guard.sh
+/.claude/hooks/statusline.sh
+/.claude/hooks/template-feedback.sh
+/.claude/hooks/userpromptsubmit-compact-warn.sh
+/.claude/rules/code-review.md
+/.claude/rules/commit.md
+/.claude/rules/markdown-docs.md
+/.claude/rules/workflow.md
+/.claude/settings.json
+/.claude/.template-manifest.sha
+/.claude/.template-origin
