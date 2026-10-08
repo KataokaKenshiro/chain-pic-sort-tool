@@ -3,7 +3,8 @@
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtGui import QAction, QActionGroup, QImage, QKeySequence
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QAction, QActionGroup, QImage, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QFileDialog,
     QFormLayout,
@@ -11,6 +12,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
+    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -18,8 +20,9 @@ from PySide6.QtWidgets import (
 
 from chain_pic_sort.core.imaging import Rotation, render
 from chain_pic_sort.core.metadata import DISPLAY_KEYS, load_metadata
+from chain_pic_sort.core.mover import MoveError, SourceMissingError
 from chain_pic_sort.core.scanner import CATEGORIES
-from chain_pic_sort.core.session import SortSession
+from chain_pic_sort.core.session import LogWriteError, SortSession
 from chain_pic_sort.core.settings import AppSettings
 from chain_pic_sort.ui.image_view import ImageView
 
@@ -49,6 +52,9 @@ class MainWindow(QMainWindow):
         for number, category in enumerate(CATEGORIES, start=1):
             button = QPushButton(f"{category}  [{number}]")
             button.setMinimumHeight(48)
+            # Space/Enter で直前に押したボタンが誤って押されないよう、フォーカスを取らせない
+            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            button.clicked.connect(lambda _=False, c=category: self.sort_current(c))
             button_row.addWidget(button)
             self.buttons[category] = button
 
@@ -58,8 +64,8 @@ class MainWindow(QMainWindow):
 
         self.folder_label = QLabel(NONE_TEXT)
         self.folder_label.setWordWrap(True)
-        open_button = QPushButton("フォルダを開く…")
-        open_button.clicked.connect(self.choose_folder)
+        self.open_button = QPushButton("フォルダを開く…")
+        self.open_button.clicked.connect(self.choose_folder)
 
         self.count_labels: dict[str, QLabel] = {}
         counts = QFormLayout()
@@ -83,7 +89,7 @@ class MainWindow(QMainWindow):
         meta_box.setLayout(meta)
 
         right = QVBoxLayout()
-        right.addWidget(open_button)
+        right.addWidget(self.open_button)
         right.addWidget(self.folder_label)
         right.addWidget(counts_box)
         right.addWidget(meta_box)
@@ -100,6 +106,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central)
 
         self._build_menus()
+        self._build_shortcuts()
 
     def _build_menus(self) -> None:
         file_menu = self.menuBar().addMenu("ファイル(&F)")
@@ -119,6 +126,21 @@ class MainWindow(QMainWindow):
             rotate_menu.addAction(action)
             self.rotation_actions[rotation] = action
 
+    def _build_shortcuts(self) -> None:
+        # QShortcut はウィンドウ内のどのウィジェットにフォーカスがあっても効く
+        def bind(key: QKeySequence | Qt.Key | str, slot: Any) -> None:
+            QShortcut(QKeySequence(key), self).activated.connect(slot)
+
+        for number, category in enumerate(CATEGORIES, start=1):
+            digit = getattr(Qt.Key, f"Key_{number}")
+            bind(str(number), lambda c=category: self.sort_current(c))
+            bind(
+                QKeySequence(Qt.KeyboardModifier.KeypadModifier | digit),
+                lambda c=category: self.sort_current(c),
+            )
+        bind(Qt.Key.Key_Left, self.show_prev)
+        bind(Qt.Key.Key_Right, self.show_next)
+
     def choose_folder(self) -> None:
         start = self.settings.last_folder
         path = QFileDialog.getExistingDirectory(
@@ -137,6 +159,37 @@ class MainWindow(QMainWindow):
         self.settings.rotation = rotation
         self.rotation_actions[rotation].setChecked(True)
         self.show_current()
+
+    def sort_current(self, category: str) -> None:
+        if self.session is None or self.session.current is None:
+            return
+        try:
+            self.session.sort_current(category)
+        except SourceMissingError as e:
+            self.warn(f"{e}\nフォルダを読み直します。")
+            self.session.reload()
+        except MoveError as e:
+            self.warn(str(e))
+            return
+        except LogWriteError as e:
+            self.warn(f"画像は {category} に移動しましたが、{e}")
+        self.refresh()
+        if self.session.remaining == 0:
+            self.info("すべての画像を振り分けました。")
+
+    def show_prev(self) -> None:
+        if self.session is not None and self.session.prev():
+            self.show_current()
+
+    def show_next(self) -> None:
+        if self.session is not None and self.session.next():
+            self.show_current()
+
+    def warn(self, text: str) -> None:
+        QMessageBox.warning(self, "警告", text)
+
+    def info(self, text: str) -> None:
+        QMessageBox.information(self, "完了", text)
 
     def refresh(self) -> None:
         self.update_counts()
