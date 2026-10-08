@@ -39,8 +39,8 @@ def move_item(item: ImageItem, folder: Path, category: str) -> Path:
             f"{category} フォルダに同じ名前のファイルがあります: {', '.join(conflicts)}"
         )
 
-    dest_dir.mkdir(exist_ok=True)
     try:
+        dest_dir.mkdir(exist_ok=True)
         dest_jpg = Path(shutil.move(item.jpg, dest_dir / item.jpg.name))
     except OSError as e:
         raise MoveError(f"{item.jpg.name} を移動できません: {e}") from e

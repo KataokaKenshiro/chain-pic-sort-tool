@@ -75,3 +75,13 @@ def test_reports_missing_source(tmp_path: Path) -> None:
 
     with pytest.raises(SourceMissingError):
         mover.move_item(item, tmp_path, "END")
+
+
+def test_reports_error_when_category_name_is_a_file(tmp_path: Path) -> None:
+    item = make_pair(tmp_path, "a")
+    (tmp_path / "NG").write_bytes(b"not a folder")
+
+    with pytest.raises(MoveError):
+        mover.move_item(item, tmp_path, "NG")
+
+    assert (tmp_path / "a.jpg").exists()
