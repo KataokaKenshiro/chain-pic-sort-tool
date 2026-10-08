@@ -2,11 +2,13 @@ import json
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QSettings, Qt
-from PySide6.QtGui import QColor, QImage
+from PySide6.QtCore import QPoint, QPointF, QSettings, Qt
+from PySide6.QtGui import QColor, QImage, QWheelEvent
+from PySide6.QtWidgets import QApplication
 
 from chain_pic_sort.core.imaging import Rotation
 from chain_pic_sort.core.settings import AppSettings
+from chain_pic_sort.ui.image_view import ImageView
 from chain_pic_sort.ui.main_window import MainWindow
 
 
@@ -178,3 +180,51 @@ def test_destination_conflict_warns_and_keeps_image(
     assert (images / "a.jpg").exists()
     assert active.file_label.text() == "a.jpg"
     assert len(messages) == 1 and messages[0].startswith("warn:")
+
+
+def wheel(view: ImageView, steps: int) -> None:
+    center = QPointF(view.viewport().rect().center())
+    event = QWheelEvent(
+        center,
+        view.viewport().mapToGlobal(center),
+        QPoint(),
+        QPoint(0, 120 * steps),
+        Qt.MouseButton.NoButton,
+        Qt.KeyboardModifier.NoModifier,
+        Qt.ScrollPhase.NoScrollPhase,
+        False,
+    )
+    QApplication.sendEvent(view.viewport(), event)
+
+
+def test_wheel_zooms_and_next_image_resets_to_fit(qtbot, active: MainWindow, images: Path) -> None:
+    active.open_folder(images)
+    view = active.view
+    fitted = view.scale_factor()
+    assert fitted < 1.0  # 1200x1200 はウィンドウより大きいので縮小表示になる
+
+    wheel(view, 2)
+    assert view.scale_factor() == pytest.approx(fitted * 1.25**2, rel=0.01)
+    wheel(view, -10)
+    assert view.scale_factor() == pytest.approx(fitted)
+
+    wheel(view, 3)
+    qtbot.keyClick(active, Qt.Key.Key_Right)
+    assert view.scale_factor() == pytest.approx(fitted)
+
+
+def test_view_can_be_dragged(active: MainWindow) -> None:
+    assert active.view.dragMode() == active.view.DragMode.ScrollHandDrag
+
+
+def test_f_key_toggles_full_image(qtbot, active: MainWindow, images: Path) -> None:
+    active.open_folder(images)
+
+    qtbot.keyClick(active, Qt.Key.Key_F)
+    assert scene_size(active) == (2048, 1200)
+
+    active.set_rotation(Rotation.RIGHT)
+    assert scene_size(active) == (1200, 2048)
+
+    qtbot.keyClick(active, Qt.Key.Key_F)
+    assert scene_size(active) == (1200, 1200)

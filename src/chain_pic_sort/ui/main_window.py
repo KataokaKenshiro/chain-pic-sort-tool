@@ -43,6 +43,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.settings = settings
         self.session: SortSession | None = None
+        self.full_view = False
         self.setWindowTitle("Chain Pic Sort")
         self.resize(1280, 900)
 
@@ -82,6 +83,8 @@ class MainWindow(QMainWindow):
         meta = QFormLayout()
         meta.addRow("ファイル:", self.file_label)
         meta.addRow("表示中:", self.position_label)
+        self.view_mode_label = QLabel("")
+        meta.addRow("表示範囲:", self.view_mode_label)
         for key in DISPLAY_KEYS:
             self.meta_labels[key] = QLabel(NONE_TEXT)
             meta.addRow(f"{key}:", self.meta_labels[key])
@@ -140,6 +143,7 @@ class MainWindow(QMainWindow):
             )
         bind(Qt.Key.Key_Left, self.show_prev)
         bind(Qt.Key.Key_Right, self.show_next)
+        bind(Qt.Key.Key_F, self.toggle_full_view)
 
     def choose_folder(self) -> None:
         start = self.settings.last_folder
@@ -185,6 +189,10 @@ class MainWindow(QMainWindow):
         if self.session is not None and self.session.next():
             self.show_current()
 
+    def toggle_full_view(self) -> None:
+        self.full_view = not self.full_view
+        self.show_current()
+
     def warn(self, text: str) -> None:
         QMessageBox.warning(self, "警告", text)
 
@@ -204,6 +212,7 @@ class MainWindow(QMainWindow):
             self.count_labels[category].setText(str(count))
 
     def show_current(self) -> None:
+        self.view_mode_label.setText("全体 [F]" if self.full_view else "中心 1200x1200 [F]")
         item = self.session.current if self.session else None
         if item is None or self.session is None:
             self.view.set_image(None)
@@ -212,7 +221,9 @@ class MainWindow(QMainWindow):
             self._show_metadata(None)
             return
         image = QImage(str(item.jpg))
-        self.view.set_image(None if image.isNull() else render(image, self.settings.rotation))
+        self.view.set_image(
+            None if image.isNull() else render(image, self.settings.rotation, self.full_view)
+        )
         self.file_label.setText(item.jpg.name + ("" if not image.isNull() else "（読めません）"))
         self.position_label.setText(f"{self.session.index + 1} / {self.session.remaining}")
         self._show_metadata(load_metadata(item.json))
