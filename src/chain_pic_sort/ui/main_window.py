@@ -131,16 +131,16 @@ class MainWindow(QMainWindow):
 
     def _build_shortcuts(self) -> None:
         # QShortcut はウィンドウ内のどのウィジェットにフォーカスがあっても効く
-        def bind(key: QKeySequence | Qt.Key | str, slot: Any) -> None:
-            QShortcut(QKeySequence(key), self).activated.connect(slot)
+        def bind(key: QKeySequence | Qt.Key | str, slot: Any, auto_repeat: bool = True) -> None:
+            shortcut = QShortcut(QKeySequence(key), self)
+            shortcut.setAutoRepeat(auto_repeat)
+            shortcut.activated.connect(slot)
 
         for number, category in enumerate(CATEGORIES, start=1):
             digit = getattr(Qt.Key, f"Key_{number}")
-            bind(str(number), lambda c=category: self.sort_current(c))
-            bind(
-                QKeySequence(Qt.KeyboardModifier.KeypadModifier | digit),
-                lambda c=category: self.sort_current(c),
-            )
+            # 押しっぱなしで次々と振り分けないよう、振り分けキーはリピートさせない
+            for key in (str(number), QKeySequence(Qt.KeyboardModifier.KeypadModifier | digit)):
+                bind(key, lambda c=category: self.sort_current(c), auto_repeat=False)
         bind(Qt.Key.Key_Left, self.show_prev)
         bind(Qt.Key.Key_Right, self.show_next)
         bind(Qt.Key.Key_F, self.toggle_full_view)

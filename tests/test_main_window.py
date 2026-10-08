@@ -2,8 +2,8 @@ import json
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QPoint, QPointF, QSettings, Qt
-from PySide6.QtGui import QColor, QImage, QWheelEvent
+from PySide6.QtCore import QEvent, QPoint, QPointF, QSettings, Qt
+from PySide6.QtGui import QColor, QImage, QKeyEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
 
 from chain_pic_sort.core.imaging import Rotation
@@ -228,3 +228,25 @@ def test_f_key_toggles_full_image(qtbot, active: MainWindow, images: Path) -> No
 
     qtbot.keyClick(active, Qt.Key.Key_F)
     assert scene_size(active) == (1200, 1200)
+
+
+def test_keypad_digits_sort(qtbot, active: MainWindow, images: Path, messages: list[str]) -> None:
+    active.open_folder(images)
+
+    qtbot.keyClick(active, Qt.Key.Key_3, Qt.KeyboardModifier.KeypadModifier)
+
+    assert (images / "SKIP" / "a.jpg").exists()
+
+
+def test_holding_a_sort_key_does_not_repeat(
+    active: MainWindow, images: Path, messages: list[str]
+) -> None:
+    active.open_folder(images)
+    repeat = QKeyEvent(
+        QEvent.Type.KeyPress, Qt.Key.Key_2, Qt.KeyboardModifier.NoModifier, "2", True
+    )
+
+    QApplication.sendEvent(active, repeat)
+
+    assert not (images / "NG").exists()
+    assert active.file_label.text() == "a.jpg"
