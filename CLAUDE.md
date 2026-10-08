@@ -2,7 +2,25 @@
 
 ## このプロジェクトについて
 
-（ユーザー記入欄：作るもの・スタック・主要ライブラリ・ビルド/テスト/フォーマットコマンド・固有の制約 を 1〜3 段落で）
+チェーン検査カメラの画像（2048x1200 グレースケール jpg + AI 判定結果の json）を、目視で OK / NG / SKIP / END に
+振り分けるデスクトップツール。Python 3.12+ / PySide6 / uv。Windows 11 と Linux の両対応（Windows は PyInstaller で exe 化）。
+画面を持たない処理は `src/chain_pic_sort/core/`、画面は `src/chain_pic_sort/ui/` に分け、core は画面なしで pytest する。
+
+- 既定ブランチ: `main`
+- 実際の検査画像（`image/`）は git に含めない。テストは `tmp_path` に生成したダミー画像を使う
+- Qt テストは `tests/conftest.py` で `QT_QPA_PLATFORM=offscreen` にして動かす。Linux の素の環境では
+  `libglib2.0-0 libegl1 libgl1 libfontconfig1 libxkbcommon0 libdbus-1-3` が無いと PySide6 の import で落ちる
+
+### コマンド
+
+| 用途 | コマンド | 備考 |
+|---|---|---|
+| install | `uv sync` | |
+| テスト | `uv run pytest` | pytest-qt（offscreen） |
+| lint | `uv run ruff check` | |
+| format check | `uv run ruff format --check` | 検証用（書き換えない） |
+| format apply | `uv run ruff format` | 書き込み系。PostToolUse hook で自動適用 |
+| 型チェック | `uv run mypy` | 非 strict |
 
 > 重要: このテンプレートは **言語・スタック非依存** の AI ワークフロー基盤のみ提供します。Docker・パッケージマネージャ・ビルド構成・ディレクトリレイアウト等の技術スキャフォールドはユーザー or AI が個別プロジェクトで生成します（依頼すれば Claude が現状を見て提案します）。
 
