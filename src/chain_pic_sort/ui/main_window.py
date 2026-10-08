@@ -99,7 +99,7 @@ class MainWindow(QMainWindow):
         right.addStretch(1)
         right_panel = QWidget()
         right_panel.setLayout(right)
-        right_panel.setFixedWidth(300)
+        right_panel.setFixedWidth(400)
 
         root = QHBoxLayout()
         root.addLayout(left, stretch=1)
